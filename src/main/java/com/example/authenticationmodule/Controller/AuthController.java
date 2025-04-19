@@ -2,6 +2,7 @@ package com.example.authenticationmodule.Controller;
 
 import com.example.authenticationmodule.DTO.JwtResponse;
 import com.example.authenticationmodule.Util.JwtTokenUtil;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -26,7 +27,6 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@RequestBody LinkedHashMap<String, Object> loginRequest) {
-
         // Autenticar al usuario
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
@@ -34,25 +34,21 @@ public class AuthController {
                         loginRequest.get("password")
                 )
         );
-
         // Establecer la autenticación en el contexto
         SecurityContextHolder.getContext().setAuthentication(authentication);
-
         // Extraer los roles/autoridades del objeto Authentication
         Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
         List<String> roles = authorities.stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
-
         // Generar el token JWT incluyendo los roles
         // Modificar tu método generateToken para aceptar los roles
         String jwt = jwtTokenUtil.generateToken(authentication.getName(), roles);
-
         // Devolver el token en la respuesta
         return ResponseEntity.ok(new JwtResponse(jwt));
     }
     @GetMapping("/Admin/test")
-    public Object testResource(){
+    public Object testResource(HttpSession session){
         return "HolaAdmin";
     }
     @GetMapping("/User/test")
