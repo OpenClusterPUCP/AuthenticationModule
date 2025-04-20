@@ -1,6 +1,8 @@
 package com.example.authenticationmodule.Controller;
 
 import com.example.authenticationmodule.DTO.JwtResponse;
+import com.example.authenticationmodule.Entity.User;
+import com.example.authenticationmodule.Repository.UserRepository;
 import com.example.authenticationmodule.Util.JwtTokenUtil;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +28,8 @@ public class AuthController {
 
     @Autowired
     private JwtTokenUtil jwtTokenUtil;
+    @Autowired
+    private UserRepository userRepository;
 
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@RequestBody LinkedHashMap<String, Object> loginRequest) {
@@ -58,15 +62,18 @@ public class AuthController {
                     .collect(Collectors.toList());
 
             // Generar token JWT
-            String jwt = jwtTokenUtil.generateToken(authentication.getName(), roles);
+            String jwt = jwtTokenUtil.generateToken(authentication.getName(), roles.get(0));
 
             // Crear respuesta exitosa usando LinkedHashMap
             LinkedHashMap<String, Object> response = new LinkedHashMap<>();
-            response.put("token", jwt);
-            response.put("type", "Bearer");
-            response.put("username", authentication.getName());
-            response.put("roles", roles);
 
+            User user  = userRepository.findUsersByUsername(authentication.getName()).get();
+            response.put("jwt", jwt);
+            response.put("name", user.getUsername() );
+            response.put("lastname", user.getUsername() );
+            response.put("username", user.getUsername() );
+            response.put("role", roles.get(0));
+            response.put("id" , user.getId());
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                     .body(response);
@@ -118,21 +125,5 @@ public class AuthController {
                     .body(response);
         }
     }
-
-
-
-
-
-
-    @GetMapping("/Admin/test")
-    public Object testResource(HttpSession session){
-        return "HolaAdmin";
-    }
-    @GetMapping("/User/test")
-    public Object testResourceUser(){
-        return "HolaUser";
-
-    }
-
 
 }
