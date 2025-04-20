@@ -3,6 +3,7 @@ package com.example.authenticationmodule.Controller;
 import com.example.authenticationmodule.DTO.JwtResponse;
 import com.example.authenticationmodule.Entity.User;
 import com.example.authenticationmodule.Repository.UserRepository;
+import com.example.authenticationmodule.RestTemplate.UserServiceFeign;
 import com.example.authenticationmodule.Util.JwtTokenUtil;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +32,8 @@ public class AuthController {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private UserServiceFeign userServiceFeign;
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@RequestBody LinkedHashMap<String, Object> loginRequest) {
         try {
@@ -124,6 +127,16 @@ public class AuthController {
                     .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                     .body(response);
         }
+    }
+
+    @GetMapping("/Admin/users")
+    public ResponseEntity<?> getSlices(){
+        return userServiceFeign.listarUsers();
+    }
+
+    @GetMapping("/User/users")
+    public ResponseEntity<?> getUser(){
+        return userServiceFeign.listarUsers();
     }
 
 }
