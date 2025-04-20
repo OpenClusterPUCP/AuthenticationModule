@@ -6,6 +6,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 
 @FeignClient(name="UserServiceModule")
 public interface UserServiceFeign {
-    @GetMapping("/users")
+    @GetMapping("/Admin/users")
     ResponseEntity<?> listarUsers();
 }
