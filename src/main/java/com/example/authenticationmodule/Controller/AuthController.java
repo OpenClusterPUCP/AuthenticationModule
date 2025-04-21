@@ -32,8 +32,7 @@ public class AuthController {
     @Autowired
     private UserRepository userRepository;
 
-    @Autowired
-    private UserServiceFeign userServiceFeign;
+   
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@RequestBody LinkedHashMap<String, Object> loginRequest) {
         try {
@@ -129,14 +128,5 @@ public class AuthController {
         }
     }
 
-    @GetMapping("/Admin/users")
-    public ResponseEntity<?> getSlices(){
-        return userServiceFeign.listarUsers();
-    }
-
-    @GetMapping("/User/users")
-    public ResponseEntity<?> getUser(){
-        return userServiceFeign.listarUsers();
-    }
 
 }
