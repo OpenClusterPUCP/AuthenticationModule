@@ -129,4 +129,13 @@ public class AuthController {
     }
 
 
+    @GetMapping("/api/auth/public-key")
+    @ResponseBody
+    public ResponseEntity<?> getPublicKeyBase64ola() {
+        LinkedHashMap<String , Object > response=  new LinkedHashMap<>();
+        response.put("publicKey" ,jwtTokenUtil.getPublicKeyBase64() );
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+
 }
