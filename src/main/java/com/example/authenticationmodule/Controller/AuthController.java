@@ -17,6 +17,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -70,6 +71,11 @@ public class AuthController {
             LinkedHashMap<String, Object> response = new LinkedHashMap<>();
 
             User user  = userRepository.findUsersByUsername(authentication.getName()).get();
+
+            // Establecer el tiempo del login
+            user.setLastLogin(LocalDateTime.now());
+            userRepository.save(user);
+
             response.put("jwt", jwt);
             response.put("name", user.getUsername() );
             response.put("lastname", user.getUsername() );
