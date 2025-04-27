@@ -28,11 +28,9 @@ import javax.sql.DataSource;
 public class SecurityConfig {
 
     private final DataSource dataSource;
-    private final JwtTokenUtil jwtService;
 
-    public SecurityConfig(DataSource dataSource, JwtTokenUtil jwtService) {
+    public SecurityConfig(DataSource dataSource) {
         this.dataSource = dataSource;
-        this.jwtService = jwtService;
     }
 
     @Bean

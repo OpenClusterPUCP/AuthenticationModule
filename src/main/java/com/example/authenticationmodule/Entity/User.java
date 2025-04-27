@@ -29,11 +29,7 @@ public class User {
     @Column(name = "state", nullable = false, length = 45)
     private String state;
 
-    @OneToMany(mappedBy = "user")
-    private Set<Resource> resources = new LinkedHashSet<>();
 
-    @OneToMany(mappedBy = "user")
-    private Set<Token> tokens = new LinkedHashSet<>();
 
     public Integer getId() {
         return id;
@@ -83,20 +79,5 @@ public class User {
         this.state = state;
     }
 
-    public Set<Resource> getResources() {
-        return resources;
-    }
-
-    public void setResources(Set<Resource> resources) {
-        this.resources = resources;
-    }
-
-    public Set<Token> getTokens() {
-        return tokens;
-    }
-
-    public void setTokens(Set<Token> tokens) {
-        this.tokens = tokens;
-    }
 
 }

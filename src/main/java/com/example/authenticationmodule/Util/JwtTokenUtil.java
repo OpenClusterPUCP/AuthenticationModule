@@ -3,131 +3,99 @@ package com.example.authenticationmodule.Util;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
-import org.springframework.web.bind.annotation.GetMapping;
 
 import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Component
 public class JwtTokenUtil {
-
     private static final long EXPIRATION_TIME = 864_000_000; // 10 días
-
     private PrivateKey privateKey;
     private PublicKey publicKey;
 
-    // Opción 1: Para desarrollo/pruebas, genera automáticamente las claves
-    public JwtTokenUtil() {
-        try {
-            // Genera un par de claves para desarrollo (no recomendado para producción)
-            KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-            keyPairGenerator.initialize(2048);
-            KeyPair keyPair = keyPairGenerator.generateKeyPair();
+    // Inyectar las rutas de los archivos de claves
+    @Value("${jwt.private-key-path:classpath:private_key.pem}")
+    private Resource privateKeyResource;
 
-            this.privateKey = keyPair.getPrivate();
-            this.publicKey = keyPair.getPublic();
-
-            // Imprime las claves para configuración futura
-            System.out.println("⚠️ USANDO CLAVES GENERADAS AUTOMÁTICAMENTE - NO PARA PRODUCCIÓN ⚠️");
-            System.out.println("Clave privada Base64: " +
-                    Base64.getEncoder().encodeToString(privateKey.getEncoded()));
-            System.out.println("Clave pública Base64: " +
-                    Base64.getEncoder().encodeToString(publicKey.getEncoded()));
-        } catch (Exception e) {
-            throw new RuntimeException("Error al generar las claves RSA", e);
-        }
-    }
-
-    /*
-    // Opción 2: Para producción, usa claves desde properties
-    // Descomenta esto y comenta el constructor de arriba cuando tengas tus claves listas
-
-    @Value("${jwt.private.key:}")
-    private String privateKeyString;
-
-    @Value("${jwt.public.key:}")
-    private String publicKeyString;
+    @Value("${jwt.public-key-path:classpath:public_key.pem}")
+    private Resource publicKeyResource;
 
     @PostConstruct
     public void init() {
         try {
-            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            // Cargar clave privada desde archivo PEM
+            loadPrivateKey();
 
-            // Inicializar con claves de configuración si están disponibles
-            if (privateKeyString != null && !privateKeyString.isEmpty()) {
-                try {
-                    // Intenta decodificar como PKCS8 directo
-                    byte[] privateKeyBytes = Base64.getDecoder().decode(privateKeyString);
-                    PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(privateKeyBytes);
-                    this.privateKey = keyFactory.generatePrivate(privateKeySpec);
-                } catch (Exception e) {
-                    // Si falla, puede ser que la clave esté en formato PEM, intenta limpiar
-                    String cleanedKey = privateKeyString
-                            .replace("-----BEGIN PRIVATE KEY-----", "")
-                            .replace("-----END PRIVATE KEY-----", "")
-                            .replace("-----BEGIN RSA PRIVATE KEY-----", "")
-                            .replace("-----END RSA PRIVATE KEY-----", "")
-                            .replaceAll("\\s+", "");
+            // Cargar clave pública desde archivo PEM
+            loadPublicKey();
 
-                    byte[] privateKeyBytes = Base64.getDecoder().decode(cleanedKey);
-                    PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(privateKeyBytes);
-                    this.privateKey = keyFactory.generatePrivate(privateKeySpec);
-                }
-            }
-
-            if (publicKeyString != null && !publicKeyString.isEmpty()) {
-                try {
-                    // Intenta decodificar como X509 directo
-                    byte[] publicKeyBytes = Base64.getDecoder().decode(publicKeyString);
-                    X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(publicKeyBytes);
-                    this.publicKey = keyFactory.generatePublic(publicKeySpec);
-                } catch (Exception e) {
-                    // Si falla, puede ser que la clave esté en formato PEM, intenta limpiar
-                    String cleanedKey = publicKeyString
-                            .replace("-----BEGIN PUBLIC KEY-----", "")
-                            .replace("-----END PUBLIC KEY-----", "")
-                            .replaceAll("\\s+", "");
-
-                    byte[] publicKeyBytes = Base64.getDecoder().decode(cleanedKey);
-                    X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(publicKeyBytes);
-                    this.publicKey = keyFactory.generatePublic(publicKeySpec);
-                }
-            }
-
-            // Genera claves si no se proporcionaron en la configuración
+            // Verificar que ambas claves se hayan cargado correctamente
             if (privateKey == null || publicKey == null) {
-                System.out.println("⚠️ Claves no configuradas, generando automáticamente ⚠️");
-                KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-                keyPairGenerator.initialize(2048);
-                KeyPair keyPair = keyPairGenerator.generateKeyPair();
-
-                if (privateKey == null) {
-                    this.privateKey = keyPair.getPrivate();
-                    System.out.println("Clave privada generada: " +
-                        Base64.getEncoder().encodeToString(privateKey.getEncoded()));
-                }
-
-                if (publicKey == null) {
-                    this.publicKey = keyPair.getPublic();
-                    System.out.println("Clave pública generada: " +
-                        Base64.getEncoder().encodeToString(publicKey.getEncoded()));
-                }
+                throw new RuntimeException("Error al cargar las claves RSA desde archivos");
             }
+
+            System.out.println("✅ Claves RSA cargadas exitosamente desde archivos PEM");
         } catch (Exception e) {
             throw new RuntimeException("Error al inicializar las claves RSA", e);
         }
     }
-    */
+
+    private void loadPrivateKey() throws Exception {
+        try {
+            // Leer el contenido del archivo PEM
+            String pemContent = new String(privateKeyResource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+
+            // Extraer la clave privada (quitar cabeceras y pies PEM)
+            String privateKeyPEM = pemContent
+                    .replace("-----BEGIN PRIVATE KEY-----", "")
+                    .replace("-----END PRIVATE KEY-----", "")
+                    .replace("-----BEGIN RSA PRIVATE KEY-----", "")
+                    .replace("-----END RSA PRIVATE KEY-----", "")
+                    .replaceAll("\\s", "");
+
+            // Decodificar Base64
+            byte[] encoded = Base64.getDecoder().decode(privateKeyPEM);
+
+            // Crear la clave privada
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(encoded);
+            this.privateKey = keyFactory.generatePrivate(keySpec);
+        } catch (Exception e) {
+            System.err.println("Error al cargar la clave privada: " + e.getMessage());
+            throw e;
+        }
+    }
+
+    private void loadPublicKey() throws Exception {
+        try {
+            // Leer el contenido del archivo PEM
+            String pemContent = new String(publicKeyResource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+
+            // Extraer la clave pública (quitar cabeceras y pies PEM)
+            String publicKeyPEM = pemContent
+                    .replace("-----BEGIN PUBLIC KEY-----", "")
+                    .replace("-----END PUBLIC KEY-----", "")
+                    .replaceAll("\\s", "");
+
+            // Decodificar Base64
+            byte[] encoded = Base64.getDecoder().decode(publicKeyPEM);
+
+            // Crear la clave pública
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            X509EncodedKeySpec keySpec = new X509EncodedKeySpec(encoded);
+            this.publicKey = keyFactory.generatePublic(keySpec);
+        } catch (Exception e) {
+            System.err.println("Error al cargar la clave pública: " + e.getMessage());
+            throw e;
+        }
+    }
 
     public String generateToken(String username, String roles) {
         Map<String, Object> claims = new HashMap<>();
@@ -167,10 +135,8 @@ public class JwtTokenUtil {
         return claims.getSubject();
     }
 
-    // Métodos auxiliares para exportar las claves (útil para configurar otros servicios)
+    // Método auxiliar para exportar la clave pública (útil para configurar otros servicios)
     public String getPublicKeyBase64() {
         return Base64.getEncoder().encodeToString(publicKey.getEncoded());
     }
-
-
 }
