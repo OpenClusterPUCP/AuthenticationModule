@@ -1,11 +1,10 @@
 package com.example.authenticationmodule.Controller;
 
-import com.example.authenticationmodule.DTO.JwtResponse;
 import com.example.authenticationmodule.Entity.User;
 import com.example.authenticationmodule.Repository.UserRepository;
-import com.example.authenticationmodule.RestTemplate.UserServiceFeign;
 import com.example.authenticationmodule.Util.JwtTokenUtil;
 import jakarta.servlet.http.HttpSession;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -24,21 +23,27 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
+@Slf4j
 public class AuthController {
     @Autowired
     private AuthenticationManager authenticationManager;
 
     @Autowired
     private JwtTokenUtil jwtTokenUtil;
+
     @Autowired
     private UserRepository userRepository;
 
-   
+
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@RequestBody LinkedHashMap<String, Object> loginRequest) {
+        log.info("Recibida solicitud de login para usuario: {}", loginRequest.get("username"));
+
         try {
             // Validar que los campos requeridos estén presentes
             if (loginRequest.get("username") == null || loginRequest.get("password") == null) {
+                log.warn("Intento de login con campos vacíos: username o password no proporcionados");
+
                 LinkedHashMap<String, Object> response = new LinkedHashMap<>();
                 response.put("success", false);
                 response.put("message", "Username or password cannot be empty");
@@ -49,6 +54,8 @@ public class AuthController {
                         .body(response);
             }
 
+            log.debug("Iniciando proceso de autenticación para el usuario: {}", loginRequest.get("username"));
+
             // Intentar autenticar al usuario
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
@@ -57,6 +64,8 @@ public class AuthController {
                     )
             );
 
+            log.info("Usuario autenticado correctamente: {}", authentication.getName());
+
             // Si la autenticación es exitosa, establecer el contexto de seguridad
             SecurityContextHolder.getContext().setAuthentication(authentication);
             Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
@@ -64,30 +73,42 @@ public class AuthController {
                     .map(GrantedAuthority::getAuthority)
                     .collect(Collectors.toList());
 
+            log.debug("Roles del usuario {}: {}", authentication.getName(), roles);
+
             // Generar token JWT
+            log.debug("Generando token JWT para el usuario: {}", authentication.getName());
             String jwt = jwtTokenUtil.generateToken(authentication.getName(), roles.get(0));
+            log.debug("Token JWT generado exitosamente");
 
             // Crear respuesta exitosa usando LinkedHashMap
             LinkedHashMap<String, Object> response = new LinkedHashMap<>();
 
-            User user  = userRepository.findUsersByUsername(authentication.getName()).get();
+            log.debug("Recuperando información de usuario de la base de datos");
+            User user = userRepository.findUsersByUsername(authentication.getName()).get();
 
             // Establecer el tiempo del login
+            log.debug("Actualizando última fecha de login para el usuario: {}", user.getUsername());
             user.setLastLogin(LocalDateTime.now());
             userRepository.save(user);
+            log.debug("Última fecha de login actualizada correctamente");
 
             response.put("jwt", jwt);
-            response.put("name", user.getUsername() );
-            response.put("lastname", user.getUsername() );
-            response.put("username", user.getUsername() );
+            response.put("name", user.getUsername());
+            response.put("lastname", user.getUsername());
+            response.put("username", user.getUsername());
             response.put("role", roles.get(0));
-            response.put("id" , user.getId());
+            response.put("id", user.getId());
+
+            log.info("Login exitoso completado para el usuario: {}, ID: {}", user.getUsername(), user.getId());
+
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                     .body(response);
 
         } catch (BadCredentialsException e) {
             // Credenciales inválidas
+            log.warn("Intento de login fallido: Credenciales inválidas para usuario: {}", loginRequest.get("username"));
+
             LinkedHashMap<String, Object> response = new LinkedHashMap<>();
             response.put("success", false);
             response.put("message", "Invalid username or password");
@@ -99,19 +120,21 @@ public class AuthController {
 
         } catch (DisabledException e) {
             // Cuenta deshabilitada
+            log.warn("Intento de login fallido: Cuenta deshabilitada para usuario: {}", loginRequest.get("username"));
 
             LinkedHashMap<String, Object> response = new LinkedHashMap<>();
             response.put("success", false);
             response.put("message", "Account is disabled");
-            System.out.println("Disabled");
+
             return ResponseEntity
                     .status(HttpStatus.FORBIDDEN)
                     .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                     .body(response);
 
         } catch (LockedException e) {
-            System.out.println("Locked");
             // Cuenta bloqueada
+            log.warn("Intento de login fallido: Cuenta bloqueada para usuario: {}", loginRequest.get("username"));
+
             LinkedHashMap<String, Object> response = new LinkedHashMap<>();
             response.put("success", false);
             response.put("message", "Account is locked");
@@ -123,6 +146,8 @@ public class AuthController {
 
         } catch (Exception e) {
             // Otros errores inesperados
+            log.error("Error inesperado durante la autenticación: {} - Mensaje: {}", loginRequest.get("username"), e.getMessage(), e);
+
             LinkedHashMap<String, Object> response = new LinkedHashMap<>();
             response.put("success", false);
             response.put("message", "Authentication error: " + e.getMessage());
@@ -133,15 +158,4 @@ public class AuthController {
                     .body(response);
         }
     }
-
-
-    @GetMapping("/api/auth/public-key")
-    @ResponseBody
-    public ResponseEntity<?> getPublicKeyBase64ola() {
-        LinkedHashMap<String , Object > response=  new LinkedHashMap<>();
-        response.put("publicKey" ,jwtTokenUtil.getPublicKeyBase64() );
-        return ResponseEntity.status(HttpStatus.OK).body(response);
-    }
-
-
 }

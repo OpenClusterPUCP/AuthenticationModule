@@ -38,10 +38,6 @@ public class User {
     @Column(name = "last_login")
     private LocalDateTime lastLogin;
 
-    @OneToMany(mappedBy = "user")
-    private Set<Resource> resources = new LinkedHashSet<>();
 
-    @OneToMany(mappedBy = "user")
-    private Set<Token> tokens = new LinkedHashSet<>();
 
 }
