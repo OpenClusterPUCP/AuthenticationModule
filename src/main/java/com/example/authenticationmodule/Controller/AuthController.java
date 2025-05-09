@@ -93,9 +93,10 @@ public class AuthController {
             log.debug("Última fecha de login actualizada correctamente");
 
             response.put("jwt", jwt);
-            response.put("name", user.getUsername());
-            response.put("lastname", user.getUsername());
+            response.put("name", user.getName());
+            response.put("lastname", user.getLastName());
             response.put("username", user.getUsername());
+            response.put("code", user.getCode());
             response.put("role", roles.get(0));
             response.put("id", user.getId());
 
