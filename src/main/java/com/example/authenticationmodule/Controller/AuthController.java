@@ -27,14 +27,10 @@ import java.util.stream.Collectors;
 public class AuthController {
     @Autowired
     private AuthenticationManager authenticationManager;
-
     @Autowired
     private JwtTokenUtil jwtTokenUtil;
-
     @Autowired
     private UserRepository userRepository;
-
-
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@RequestBody LinkedHashMap<String, Object> loginRequest) {
         log.info("Recibida solicitud de login para usuario: {}", loginRequest.get("username"));
