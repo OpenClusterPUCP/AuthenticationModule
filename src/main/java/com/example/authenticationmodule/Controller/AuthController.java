@@ -97,6 +97,7 @@ public class AuthController {
             response.put("lastname", user.getUsername());
             response.put("username", user.getUsername());
             response.put("role", roles.get(0));
+            response.put("profile", user.getProfile());
             response.put("id", user.getId());
 
             log.info("Login exitoso completado para el usuario: {}, ID: {}", user.getUsername(), user.getId());

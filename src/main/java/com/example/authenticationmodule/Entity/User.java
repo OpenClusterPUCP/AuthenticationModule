@@ -29,6 +29,9 @@ public class User {
     @JoinColumn(name = "role", nullable = false)
     private Role role;
 
+    @Column(name = "profile")
+    private String profile;
+
     @Column(name = "state", nullable = false, length = 45)
     private String state;
 
