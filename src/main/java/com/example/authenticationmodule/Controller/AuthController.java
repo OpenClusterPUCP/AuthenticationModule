@@ -27,14 +27,10 @@ import java.util.stream.Collectors;
 public class AuthController {
     @Autowired
     private AuthenticationManager authenticationManager;
-
     @Autowired
     private JwtTokenUtil jwtTokenUtil;
-
     @Autowired
     private UserRepository userRepository;
-
-
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@RequestBody LinkedHashMap<String, Object> loginRequest) {
         log.info("Recibida solicitud de login para usuario: {}", loginRequest.get("username"));
@@ -93,9 +89,10 @@ public class AuthController {
             log.debug("Última fecha de login actualizada correctamente");
 
             response.put("jwt", jwt);
-            response.put("name", user.getUsername());
-            response.put("lastname", user.getUsername());
+            response.put("name", user.getName());
+            response.put("lastname", user.getLastName());
             response.put("username", user.getUsername());
+            response.put("code", user.getCode());
             response.put("role", roles.get(0));
             response.put("profile", user.getProfile());
             response.put("id", user.getId());

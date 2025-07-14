@@ -8,7 +8,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "user", schema = "cloud")
+@Table(name = "user", schema = "cloud_v3")
 @Data
 public class User {
     @Id
@@ -24,6 +24,12 @@ public class User {
 
     @Column(name = "code", nullable = false, length = 45)
     private String code;
+
+    @Column(name = "name", nullable = false, length = 45)
+    private String name;
+
+    @Column(name = "lastname", nullable = false, length = 45)
+    private String lastName;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "role", nullable = false)
